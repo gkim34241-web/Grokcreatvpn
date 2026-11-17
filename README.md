@@ -1,5 +1,5 @@
-# Android VPN Client
+# Simple Android VPN Client
 
-A simple Android VPN client implementation using **VpnService API** for basic VPN functionality.
+Minimal VpnService example that builds in GitHub Actions.
 
-Ready to build in GitHub Actions. After the workflow succeeds, download the APK from the Artifacts.
+Download the APK from the Actions artifacts after a successful run.

@@ -1,31 +1,10 @@
-# Android
 *.iml
 .gradle
 /local.properties
-/.idea/
-build/
-app/build/
-
-# Kotlin
-*.ktiml
-
-# Keystore files
-*.jks
-*.keystore
-
-# Signing files
-signing.properties
-
-# Local configuration
-
-# Logs
-*.log
-
-# OS files
+/.idea
 .DS_Store
-Thumbs.db
-
-# IDE
-.idea/
-*.swp
-*.swo
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties

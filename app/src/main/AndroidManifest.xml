@@ -1,17 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.vpnclient">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:supportsRtl="true"
         android:theme="@style/Theme.VPNClient">
 
         <activity
@@ -23,16 +19,13 @@
             </intent-filter>
         </activity>
 
-        <!-- Basic VpnService -->
         <service
-            android:name=".vpn.BasicVpnService"
+            android:name=".VpnServiceImpl"
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:exported="false">
             <intent-filter>
-                <action android:name="android.net.VpnService"/>
+                <action android:name="android.net.VpnService" />
             </intent-filter>
         </service>
-
     </application>
-
 </manifest>

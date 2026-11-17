@@ -8,74 +8,51 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var startVpnButton: Button
-    private lateinit var stopVpnButton: Button
+    private lateinit var startButton: Button
     private lateinit var statusText: TextView
-    private lateinit var pingText: TextView
-    private lateinit var speedText: TextView
-    
-    private var isVpnRunning = false
-    private val VPN_REQUEST_CODE = 1
+    private var running = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        
-        // Initialize views
-        startVpnButton = findViewById(R.id.startVpnButton)
-        stopVpnButton = findViewById(R.id.stopVpnButton)
+
+        startButton = findViewById(R.id.startButton)
         statusText = findViewById(R.id.statusText)
-        pingText = findViewById(R.id.pingText)
-        speedText = findViewById(R.id.speedText)
-        
-        updateUI()
-        
-        startVpnButton.setOnClickListener {
-            startVpn()
+
+        startButton.setOnClickListener {
+            if (!running) startVpn() else stopVpn()
         }
-        
-        stopVpnButton.setOnClickListener {
-            stopVpn()
-        }
+        updateUi()
     }
-    
+
     private fun startVpn() {
         val intent = VpnService.prepare(this)
         if (intent != null) {
-            startActivityForResult(intent, VPN_REQUEST_CODE)
+            startActivityForResult(intent, 1)
         } else {
-            startService(Intent(this, vpn.BasicVpnService::class.java))
-            isVpnRunning = true
-            updateUI()
+            startService(Intent(this, VpnServiceImpl::class.java))
+            running = true
+            updateUi()
         }
     }
-    
+
     private fun stopVpn() {
-        stopService(Intent(this, vpn.BasicVpnService::class.java))
-        isVpnRunning = false
-        updateUI()
+        stopService(Intent(this, VpnServiceImpl::class.java))
+        running = false
+        updateUi()
     }
-    
-    private fun updateUI() {
-        startVpnButton.isEnabled = !isVpnRunning
-        stopVpnButton.isEnabled = isVpnRunning
-        statusText.text = getString(R.string.vpn_status, 
-            if (isVpnRunning) getString(R.string.connected) else getString(R.string.disconnected))
+
+    private fun updateUi() {
+        startButton.text = if (running) "Stop VPN" else "Start VPN"
+        statusText.text = if (running) "Status: Connected" else "Status: Disconnected"
     }
-    
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
-            startService(Intent(this, vpn.BasicVpnService::class.java))
-            isVpnRunning = true
-            updateUI()
-        }
-    }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        if (isVpnRunning) {
-            stopVpn()
+        if (requestCode == 1 && resultCode == RESULT_OK) {
+            startService(Intent(this, VpnServiceImpl::class.java))
+            running = true
+            updateUi()
         }
     }
 }
