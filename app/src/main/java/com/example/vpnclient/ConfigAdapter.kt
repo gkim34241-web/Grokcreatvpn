@@ -1,14 +1,20 @@
 package com.example.vpnclient
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 
-class ConfigAdapter(private val items: List<VpnConfig>) : RecyclerView.Adapter<ConfigAdapter.ViewHolder>() {
+class ConfigAdapter(
+    private val items: List<VpnConfig>,
+    private val onClick: (Int) -> Unit
+) : RecyclerView.Adapter<ConfigAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val card: CardView = view.findViewById(R.id.card)
         val name: TextView = view.findViewById(R.id.configName)
         val host: TextView = view.findViewById(R.id.configHost)
         val latency: TextView = view.findViewById(R.id.configLatency)
@@ -27,6 +33,17 @@ class ConfigAdapter(private val items: List<VpnConfig>) : RecyclerView.Adapter<C
             item.latency < 0 -> "-- ms"
             else -> "${item.latency} ms"
         }
+
+        if (item.selected) {
+            holder.card.setCardBackgroundColor(Color.parseColor("#E3F2FD"))
+            holder.card.strokeColor = Color.parseColor("#1976D2")
+            holder.card.strokeWidth = 4
+        } else {
+            holder.card.setCardBackgroundColor(Color.WHITE)
+            holder.card.strokeWidth = 0
+        }
+
+        holder.itemView.setOnClickListener { onClick(position) }
     }
 
     override fun getItemCount() = items.size

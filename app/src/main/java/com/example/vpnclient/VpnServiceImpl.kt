@@ -17,13 +17,15 @@ class VpnServiceImpl : VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (running) return START_STICKY
         running = true
-        startVpn()
+        val host = intent?.getStringExtra("host") ?: "unknown"
+        val name = intent?.getStringExtra("name") ?: "VPN"
+        startVpn(name, host)
         return START_STICKY
     }
 
-    private fun startVpn() {
+    private fun startVpn(name: String, host: String) {
         val builder = Builder()
-            .setSession("SimpleVPN")
+            .setSession(name)
             .addAddress("10.0.0.2", 24)
             .addDnsServer("8.8.8.8")
             .addRoute("0.0.0.0", 0)
@@ -36,7 +38,7 @@ class VpnServiceImpl : VpnService() {
             return
         }
 
-        showNotification()
+        showNotification(name)
 
         thread = Thread {
             try {
@@ -55,14 +57,15 @@ class VpnServiceImpl : VpnService() {
         }.also { it.start() }
     }
 
-    private fun showNotification() {
+    private fun showNotification(name: String) {
         val channelId = "vpn"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId, "VPN", NotificationManager.IMPORTANCE_LOW)
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
         val notification = Notification.Builder(this, channelId)
-            .setContentTitle("VPN running")
+            .setContentTitle("VPN: $name")
+            .setContentText("Connected")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .build()
         startForeground(1, notification)
@@ -71,7 +74,7 @@ class VpnServiceImpl : VpnService() {
     override fun onDestroy() {
         running = false
         thread?.interrupt()
-        vpnInterface?.close()
+        try { vpnInterface?.close() } catch (_: Exception) {}
         super.onDestroy()
     }
 }

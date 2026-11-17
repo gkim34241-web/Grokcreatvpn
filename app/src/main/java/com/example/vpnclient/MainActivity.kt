@@ -1,5 +1,6 @@
 package com.example.vpnclient
 
+import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.Bundle
@@ -10,11 +11,14 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import java.net.HttpURLConnection
+import org.json.JSONArray
+import org.json.JSONObject
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.net.URL
 import kotlin.concurrent.thread
 
-data class VpnConfig(val name: String, val host: String, var latency: Long = -1)
+data class VpnConfig(val name: String, val host: String, var latency: Long = -1, var selected: Boolean = false)
 
 class MainActivity : AppCompatActivity() {
     private lateinit var startButton: Button
@@ -28,6 +32,9 @@ class MainActivity : AppCompatActivity() {
 
     private val configs = mutableListOf<VpnConfig>()
     private var running = false
+    private var selectedIndex = -1
+
+    private val prefs by lazy { getSharedPreferences("vpn_configs", Context.MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,15 +48,13 @@ class MainActivity : AppCompatActivity() {
         settingsButton = findViewById(R.id.settingsButton)
         recyclerView = findViewById(R.id.recyclerView)
 
-        adapter = ConfigAdapter(configs)
+        adapter = ConfigAdapter(configs) { index ->
+            selectServer(index)
+        }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
-        if (configs.isEmpty()) {
-            configs.add(VpnConfig("Google DNS", "8.8.8.8"))
-            configs.add(VpnConfig("Cloudflare", "1.1.1.1"))
-            configs.add(VpnConfig("Example", "example.com"))
-        }
+        loadConfigs()
 
         startButton.setOnClickListener {
             if (!running) startVpn() else stopVpn()
@@ -65,21 +70,72 @@ class MainActivity : AppCompatActivity() {
         updateUi()
     }
 
+    private fun selectServer(index: Int) {
+        if (index < 0 || index >= configs.size) return
+        selectedIndex = index
+        configs.forEachIndexed { i, c -> c.selected = i == index }
+        adapter.notifyDataSetChanged()
+        saveConfigs()
+        Toast.makeText(this, "Selected: ${configs[index].name}", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun loadConfigs() {
+        val json = prefs.getString("configs", null)
+        if (json != null) {
+            try {
+                val arr = JSONArray(json)
+                configs.clear()
+                for (i in 0 until arr.length()) {
+                    val obj = arr.getJSONObject(i)
+                    configs.add(
+                        VpnConfig(
+                            obj.getString("name"),
+                            obj.getString("host"),
+                            obj.optLong("latency", -1),
+                            obj.optBoolean("selected", false)
+                        )
+                    )
+                    if (obj.optBoolean("selected", false)) selectedIndex = i
+                }
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+        if (configs.isEmpty()) {
+            configs.add(VpnConfig("Cloudflare", "1.1.1.1"))
+            configs.add(VpnConfig("Google DNS", "8.8.8.8"))
+            configs.add(VpnConfig("Quad9", "9.9.9.9"))
+            saveConfigs()
+        }
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun saveConfigs() {
+        val arr = JSONArray()
+        configs.forEach {
+            arr.put(JSONObject().apply {
+                put("name", it.name)
+                put("host", it.host)
+                put("latency", it.latency)
+                put("selected", it.selected)
+            })
+        }
+        prefs.edit().putString("configs", arr.toString()).apply()
+    }
+
     private fun showImportDialog() {
         val input = android.widget.EditText(this).apply {
             hint = "https://example.com/servers.txt"
-            setPadding(32, 32, 32, 32)
+            setPadding(48, 32, 48, 32)
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Import from URL")
-            .setMessage("Enter a link to a text file with servers (one per line: name|host or just host)")
+            .setTitle("Import Subscription")
+            .setMessage("Link to text file (name|host or just host, one per line)")
             .setView(input)
             .setPositiveButton("Import") { _, _ ->
                 val urlStr = input.text.toString().trim()
-                if (urlStr.isNotEmpty()) {
-                    importFromUrl(urlStr)
-                }
+                if (urlStr.isNotEmpty()) importFromUrl(urlStr)
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -90,12 +146,7 @@ class MainActivity : AppCompatActivity() {
         thread {
             try {
                 val url = URL(urlStr)
-                val conn = url.openConnection() as HttpURLConnection
-                conn.connectTimeout = 8000
-                conn.readTimeout = 8000
-                val text = conn.inputStream.bufferedReader().readText()
-                conn.disconnect()
-
+                val text = url.readText()
                 val newConfigs = mutableListOf<VpnConfig>()
                 text.lines().forEach { line ->
                     val trimmed = line.trim()
@@ -112,10 +163,12 @@ class MainActivity : AppCompatActivity() {
                     if (newConfigs.isNotEmpty()) {
                         configs.clear()
                         configs.addAll(newConfigs)
+                        selectedIndex = -1
                         adapter.notifyDataSetChanged()
+                        saveConfigs()
                         Toast.makeText(this, "Imported ${newConfigs.size} servers", Toast.LENGTH_LONG).show()
                     } else {
-                        Toast.makeText(this, "No valid servers found", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "No servers found", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
@@ -128,7 +181,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun testAll() {
         testButton.isEnabled = false
-        Toast.makeText(this, "Testing latency...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Testing ping...", Toast.LENGTH_SHORT).show()
 
         thread {
             configs.forEach { config ->
@@ -139,6 +192,7 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 adapter.notifyDataSetChanged()
                 testButton.isEnabled = true
+                saveConfigs()
                 Toast.makeText(this, "Sorted by lowest ping", Toast.LENGTH_SHORT).show()
             }
         }
@@ -146,16 +200,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun measureLatency(host: String): Long {
         return try {
-            val url = if (host.startsWith("http")) URL(host) else URL("https://$host")
+            val cleanHost = host.removePrefix("https://").removePrefix("http://").split("/").first().split(":").first()
+            val port = if (host.contains(":")) host.split(":").last().toIntOrNull() ?: 443 else 443
             val start = System.currentTimeMillis()
-            val conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 4000
-            conn.readTimeout = 4000
-            conn.requestMethod = "HEAD"
-            conn.connect()
-            val time = System.currentTimeMillis() - start
-            conn.disconnect()
-            time
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress(cleanHost, port), 3000)
+            }
+            System.currentTimeMillis() - start
         } catch (e: Exception) {
             -1
         }
@@ -167,7 +218,7 @@ class MainActivity : AppCompatActivity() {
         val hostInput = dialogView.findViewById<android.widget.EditText>(R.id.hostInput)
 
         AlertDialog.Builder(this)
-            .setTitle("Add Config")
+            .setTitle("Add Server")
             .setView(dialogView)
             .setPositiveButton("Add") { _, _ ->
                 val name = nameInput.text.toString().ifBlank { "New Server" }
@@ -175,6 +226,7 @@ class MainActivity : AppCompatActivity() {
                 if (host.isNotEmpty()) {
                     configs.add(VpnConfig(name, host))
                     adapter.notifyItemInserted(configs.size - 1)
+                    saveConfigs()
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -182,11 +234,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startVpn() {
+        if (selectedIndex < 0) {
+            Toast.makeText(this, "Select a server first", Toast.LENGTH_SHORT).show()
+            return
+        }
         val intent = VpnService.prepare(this)
         if (intent != null) {
             startActivityForResult(intent, 1)
         } else {
-            startService(Intent(this, VpnServiceImpl::class.java))
+            val serviceIntent = Intent(this, VpnServiceImpl::class.java).apply {
+                putExtra("host", configs[selectedIndex].host)
+                putExtra("name", configs[selectedIndex].name)
+            }
+            startService(serviceIntent)
             running = true
             updateUi()
         }
@@ -196,17 +256,24 @@ class MainActivity : AppCompatActivity() {
         stopService(Intent(this, VpnServiceImpl::class.java))
         running = false
         updateUi()
+        Toast.makeText(this, "VPN stopped", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateUi() {
         startButton.text = if (running) "Stop VPN" else "Start VPN"
-        statusText.text = if (running) "Connected" else "Disconnected"
+        statusText.text = if (running) {
+            if (selectedIndex >= 0) "Connected to ${configs[selectedIndex].name}" else "Connected"
+        } else "Disconnected"
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 1 && resultCode == RESULT_OK) {
-            startService(Intent(this, VpnServiceImpl::class.java))
+            val serviceIntent = Intent(this, VpnServiceImpl::class.java).apply {
+                putExtra("host", configs[selectedIndex].host)
+                putExtra("name", configs[selectedIndex].name)
+            }
+            startService(serviceIntent)
             running = true
             updateUi()
         }
