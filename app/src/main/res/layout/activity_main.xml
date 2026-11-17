@@ -2,83 +2,95 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#FAFAFA">
+    android:background="#F6F3FB"
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/statusText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Disconnected"
-        android:textSize="20sp"
-        android:textStyle="bold"
+        android:background="#FFFFFF"
+        android:elevation="2dp"
         android:gravity="center"
         android:padding="16dp"
-        android:background="#FFFFFF"
-        android:elevation="2dp" />
+        android:text="Disconnected"
+        android:textColor="#2D2040"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center"
         android:orientation="horizontal"
-        android:padding="8dp"
-        android:gravity="center">
+        android:padding="8dp">
 
         <Button
             android:id="@+id/startButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_margin="4dp"
             android:layout_weight="1"
-            android:text="Start VPN"
-            android:layout_margin="4dp" />
+            android:text="Start VPN" />
 
         <Button
             android:id="@+id/testButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_margin="4dp"
             android:layout_weight="1"
-            android:text="Test Ping"
-            android:layout_margin="4dp" />
+            android:text="Test Ping" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center"
         android:orientation="horizontal"
-        android:padding="4dp"
-        android:gravity="center">
+        android:padding="4dp">
 
         <Button
             android:id="@+id/addButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_margin="4dp"
             android:layout_weight="1"
-            android:text="Add"
-            android:layout_margin="4dp" />
+            android:text="Add" />
 
         <Button
             android:id="@+id/importButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_margin="4dp"
             android:layout_weight="1"
-            android:text="Import"
-            android:layout_margin="4dp" />
+            android:text="Import" />
 
         <Button
             android:id="@+id/settingsButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_margin="4dp"
             android:layout_weight="1"
-            android:text="Settings"
-            android:layout_margin="4dp" />
+            android:text="Settings" />
     </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="16dp"
+        android:paddingTop="4dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="2dp"
+        android:text="Servers"
+        android:textColor="#5E4B7A"
+        android:textSize="13sp"
+        android:textStyle="bold" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="8dp"
-        android:clipToPadding="false" />
-
+        android:clipToPadding="false"
+        android:padding="8dp" />
 </LinearLayout>

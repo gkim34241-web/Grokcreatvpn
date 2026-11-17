@@ -3,6 +3,7 @@ package com.example.vpnclient
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
@@ -17,6 +18,7 @@ class VpnServiceImpl : VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (running) return START_STICKY
         running = true
+        setRunningFlag(true)
         val host = intent?.getStringExtra("host") ?: "unknown"
         val name = intent?.getStringExtra("name") ?: "VPN"
         startVpn(name, host)
@@ -34,6 +36,8 @@ class VpnServiceImpl : VpnService() {
         vpnInterface = builder.establish()
 
         if (vpnInterface == null) {
+            running = false
+            setRunningFlag(false)
             stopSelf()
             return
         }
@@ -67,14 +71,26 @@ class VpnServiceImpl : VpnService() {
             .setContentTitle("VPN: $name")
             .setContentText("Connected")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setOngoing(true)
             .build()
         startForeground(1, notification)
     }
 
+    private fun setRunningFlag(value: Boolean) {
+        getSharedPreferences("vpn_configs", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("vpn_running", value)
+            .apply()
+    }
+
     override fun onDestroy() {
         running = false
+        setRunningFlag(false)
         thread?.interrupt()
-        try { vpnInterface?.close() } catch (_: Exception) {}
+        try {
+            vpnInterface?.close()
+        } catch (_: Exception) {
+        }
         super.onDestroy()
     }
 }
