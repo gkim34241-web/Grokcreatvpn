@@ -36,11 +36,8 @@ class ConfigAdapter(
 
         if (item.selected) {
             holder.card.setCardBackgroundColor(Color.parseColor("#E3F2FD"))
-            holder.card.strokeColor = Color.parseColor("#1976D2")
-            holder.card.strokeWidth = 4
         } else {
             holder.card.setCardBackgroundColor(Color.WHITE)
-            holder.card.strokeWidth = 0
         }
 
         holder.itemView.setOnClickListener { onClick(position) }
