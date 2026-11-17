@@ -78,10 +78,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        running = isVpnServiceRunning() || prefs.getBoolean("vpn_running", false)
-        if (!isVpnServiceRunning()) {
-            running = false
-            prefs.edit().putBoolean("vpn_running", false).apply()
+        val alive = isVpnServiceRunning()
+        if (alive) {
+            running = true
+            prefs.edit().putBoolean("vpn_running", true).apply()
+        } else {
+            running = prefs.getBoolean("vpn_running", false)
         }
         updateUi()
     }
